@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Audio Monitoring</title>
+</head>
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+    }
+</style>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f2f2f2;
+    }
+
+    #waveformFrame {
+        border: none;
+        width: 80vw;
+        height: 60vh;
+    }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1fBrKdyL1dy1hJNSTEagYllLXDp05qVI&callback=initMap" async defer></script>
+<body>
+    <h1>Live Audio Monitoring</h1>
+    <iframe id="waveformFrame" src="http://127.0.0.1:5000/waveform" title="Waveform Visualization"></iframe>
+    <p>Open the browser console to view detailed information.</p>
+    <h3 id="predictedClass">{{ predicted_class }}</h3>
+    <h1>User Location and Predicted Class</h1>
+    <p id="address">Loading...</p>
+    <div id="map"></div>
+    <div id="predictionResult">Loading...</div>
+    <script>
+        // Create EventSource to receive audio updates
+        const audioFeed = new EventSource('/audio_feed');
+
+        // Handle incoming audio updates
+        audioFeed.onmessage = function(event) {
+            // Update the content of the <h3> element with the predicted class
+            document.getElementById('predictedClass').innerText = event.data;
+            var predicted_class = event.data
+            if (predicted_class === "['drinking_sipping']") {
+            // Geolocation
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var latitude = position.coords.latitude;
+                        var longitude = position.coords.longitude;
+    
+                        // Display map
+                        var mapOptions = {
+                            center: { lat: latitude, lng: longitude },
+                            zoom: 15
+                        };
+    
+                        var map = new google.maps.Map(document.getElementById('map'), mapOptions);
+    
+                        // Display address
+                        var geocoder = new google.maps.Geocoder();
+                        var latlng = new google.maps.LatLng(latitude, longitude);
+                        geocoder.geocode({ 'latLng': latlng }, function (results, status) {
+                            if (status === google.maps.GeocoderStatus.OK) {
+                                if (results[1]) {
+                                    document.getElementById('address').innerHTML = 'Address: ' + results[1].formatted_address;
+                                } else {
+                                    document.getElementById('address').innerHTML = 'Address not found';
+                                }
+                            } else {
+                                document.getElementById('address').innerHTML = 'Geocoder failed due to: ' + status;
+                            }
+                        });
+                    },
+                    function(error) {
+                        console.error('Error getting user location:', error);
+                        document.getElementById('address').innerHTML = 'Error getting user location';
+                    }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                document.getElementById('address').innerHTML = 'Geolocation is not supported by this browser.';
+            }
+        } else {
+            // console.log("Predicted class is not 'drinking_sipping'.");
+            console.log(predicted_class);
+            // Additional code here if needed...
+        }
+        };
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+            margin: 0;
+        }
+
+        #waveform {
+            width: 80%;
+            height: 150px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+        }
+
+        #progress {
+            height: 100%;
+            background-color: #3498db;
+            width: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="waveform">
+        <canvas id="waveformCanvas"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const canvas = document.getElementById('waveformCanvas');
+            const canvasContext = canvas.getContext('2d');
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    const source = audioContext.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    // Remove the following line if you don't want to play the audio through the speakers
+                    // analyser.connect(audioContext.destination);
+
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+
+                    canvas.width = document.getElementById('waveform').offsetWidth;
+                    canvas.height = document.getElementById('waveform').offsetHeight;
+
+                    function draw() {
+                        analyser.getByteTimeDomainData(dataArray);
+
+                        canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+                        canvasContext.lineWidth = 2;
+                        canvasContext.strokeStyle = '#3498db';
+                        canvasContext.beginPath();
+
+                        const sliceWidth = canvas.width / bufferLength;
+                        let x = 0;
+
+                        for (let i = 0; i < bufferLength; i++) {
+                            const v = dataArray[i] / 128.0;
+                            const y = v * canvas.height / 2;
+
+                            if (i === 0) {
+                                canvasContext.moveTo(x, y);
+                            } else {
+                                canvasContext.lineTo(x, y);
+                            }
+
+                            x += sliceWidth;
+                        }
+
+                        canvasContext.lineTo(canvas.width, canvas.height / 2);
+                        canvasContext.stroke();
+
+                        requestAnimationFrame(draw);
+                    }
+
+                    draw();
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                });
+        });
+    </script>
+</body>
+</html>

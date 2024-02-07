@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Example</title>
+    <style>
+        #map2 {
+            height: 400px;
+        }
+        html, body {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        #container {
+          display: flex;
+          height: 100%;
+        }
+        #map-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        #map,
+        #street-view {
+          flex: 1;
+        }
+        #street-view {
+            height: 400px;
+        }
+        #sidebar {
+          flex-basis: 15rem;
+          padding: 1rem;
+          max-width: 30rem;
+          box-sizing: border-box;
+          overflow: auto;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1fBrKdyL1dy1hJNSTEagYllLXDp05qVI&callback=initialize"></script>
+</head>
+<body>
+
+<h1>Predicted Class</h1>
+<div id="container">
+    <div id="map-container">
+      <div id="map2"></div>
+      <div id="street-view"></div>
+    </div>
+    <div id="sidebar">
+      <p>Total Distance: <span id="total"></span></p>
+      <div id="panel"></div>
+    </div>
+</div>
+<p id="predictedClass">{{ predicted_class }}</p>
+<h1>User Location and Predicted Class</h1>
+<div id="map2"></div>
+<div id="address"></div>
+<div id="commuteOptions"></div>
+<div id="predictionResult">Loading...</div>
+
+<script>
+    function performAction() {
+        console.log('Perform action for drinking_sipping');
+        // Your action code here
+    }
+
+    function getPredictedClass() {
+        const predictedClassElement = document.getElementById('predictedClass');
+        const predictedClass = predictedClassElement.textContent.trim();
+
+        if (predictedClass === "['drinking_sipping']") {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+
+                        const mapOptions = {
+                            center: { lat: latitude, lng: longitude },
+                            zoom: 15
+                        };
+                        const map = new google.maps.Map(document.getElementById('map2'), mapOptions);
+
+                        const geocoder = new google.maps.Geocoder();
+                        const latlng = new google.maps.LatLng(latitude, longitude);
+                        geocoder.geocode({ 'latLng': latlng }, function (results, status) {
+                            if (status === google.maps.GeocoderStatus.OK) {
+                                if (results[1]) {
+                                    document.getElementById('address').innerHTML = 'Address: ' + results[1].formatted_address;
+                                } else {
+                                    document.getElementById('address').innerHTML = 'Address not found';
+                                }
+                            } else {
+                                document.getElementById('address').innerHTML = 'Geocoder failed due to: ' + status;
+                            }
+                        });
+
+                        const directionsService = new google.maps.DirectionsService();
+                        const directionsRenderer = new google.maps.DirectionsRenderer({
+                            draggable: true,
+                            map: map,
+                            panel: document.getElementById("panel"),
+                        });
+
+                        directionsRenderer.addListener("directions_changed", () => {
+                            const directions = directionsRenderer.getDirections();
+                            if (directions) {
+                                computeTotalDistance(directions);
+                            }
+                        });
+                        let panorama;
+                        panorama = new google.maps.StreetViewPanorama(
+                        document.getElementById("street-view"),
+                            {
+                            position: { lat: latitude, lng: longitude },
+                            pov: { heading: 165, pitch: 0 },
+                            zoom: 1,
+                        },
+                    );
+                        const destination = 'vandalur, TN"'; // Change this to the desired destination
+                        displayRoute(latitude + ',' + longitude, destination, directionsService, directionsRenderer);
+                    },
+                    function(error) {
+                        console.error('Error getting user location:', error);
+                        document.getElementById('address').innerHTML = 'Error getting user location';
+                    }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                document.getElementById('address').innerHTML = 'Geolocation is not supported by this browser.';
+            }
+            performAction();
+        }
+    }
+
+    function displayRoute(origin, destination, service, display) {
+        service.route({
+            origin: origin,
+            destination: destination,
+            travelMode: google.maps.TravelMode.DRIVING,
+        }).then((result) => {
+            display.setDirections(result);
+        }).catch((e) => {
+            alert("Could not display directions due to: " + e);
+        });
+    }
+
+    function computeTotalDistance(result) {
+        let total = 0;
+        const myroute = result.routes[0];
+
+        if (!myroute) {
+            return;
+        }
+
+        for (let i = 0; i < myroute.legs.length; i++) {
+            total += myroute.legs[i].distance.value;
+        }
+
+        total = total / 1000;
+        document.getElementById("total").innerHTML = total + " km";
+    }
+
+    window.onload = getPredictedClass;
+    // setInterval(getPredictedClass, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+</head>
+<body>
+    <h1>Live Audio Monitoring</h1>
+    <p>Open the browser console to view detailed information.</p>
+    <h3 id="predictedClass">{{ predicted_class }}</h3>
+    <h1>User Location and Predicted Class</h1>
+    <p id="address">Loading...</p>
+    <div id="map"></div>
+    <div id="predictionResult">Loading...</div>
+    <h1>Predicted Class: <span id="predictedClassValue">No Prediction Yet</span></h1>
+
+    <script>
+        const source = new EventSource('/stream');
+        source.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'predicted_class_update') {
+                document.getElementById('predictedClassValue').textContent = data.result_value;
+            }
+        };
+
+        function initMap() {
+            // Check if Geolocation is supported
+            if (navigator.geolocation) {
+                // Get the user's location
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var latitude = position.coords.latitude;
+                        var longitude = position.coords.longitude;
+
+                        // Display map
+                        var mapOptions = {
+                            center: { lat: latitude, lng: longitude },
+                            zoom: 15
+                        };
+                        var map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+                        // Display address
+                        var geocoder = new google.maps.Geocoder();
+                        var latlng = new google.maps.LatLng(latitude, longitude);
+                        geocoder.geocode({ 'latLng': latlng }, function (results, status) {
+                            if (status === google.maps.GeocoderStatus.OK) {
+                                if (results[1]) {
+                                    document.getElementById('address').innerHTML = 'Address: ' + results[1].formatted_address;
+                                } else {
+                                    document.getElementById('address').innerHTML = 'Address not found';
+                                }
+                            } else {
+                                document.getElementById('address').innerHTML = 'Geocoder failed due to: ' + status;
+                            }
+                        });
+                    },
+                    function(error) {
+                        console.error('Error getting user location:', error);
+                        document.getElementById('address').innerHTML = 'Error getting user location';
+                    }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                document.getElementById('address').innerHTML = 'Geolocation is not supported by this browser.';
+            }
+
+            // Fetch predicted class from the server using AJAX
+            $.get('/get_predicted_class', function(data) {
+                var predictedClass = data.predicted_class;
+
+                // Check if the predicted class is "drinking_skiping"
+                if (predictedClass === "drinking_skiping") {
+                    // Perform actions or return true as needed
+                    console.log("Predicted class is 'drinking_skiping'. Returning true.");
+                    // Your additional code here...
+                } else {
+                    console.log("Predicted class is not 'drinking_skiping'.");
+                    // Your additional code here...
+                }
+            });
+        }
+        // Call the function when the page loads or at appropriate intervals
+        checkForDanger();
+    </script>
+</body>
+</html>

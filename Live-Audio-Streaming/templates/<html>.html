@@ -1,0 +1,52 @@
+<html>
+  <head>
+    <title>Street View Containers</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+    <script type="module" src="./index.js"></script>
+    <style>
+        html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#street-view {
+  height: 100%;
+}
+    </style>
+  </head>
+  <body>
+    <div id="street-view"></div>
+
+    <!-- 
+      The `defer` attribute causes the callback to execute after the full HTML
+      document has been parsed. For non-blocking uses, avoiding race conditions,
+      and consistent behavior across browsers, consider loading using Promises.
+      See https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+      for more information.
+      -->
+    <script>
+        let panorama;
+
+function initialize() {
+  panorama = new google.maps.StreetViewPanorama(
+    document.getElementById("street-view"),
+    {
+      position: { lat: 37.86926, lng: -122.254811 },
+      pov: { heading: 165, pitch: 0 },
+      zoom: 1,
+    },
+  );
+}
+
+window.initialize = initialize;
+    </script>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initialize&v=weekly"
+      defer
+    ></script>
+  </body>
+</html>
